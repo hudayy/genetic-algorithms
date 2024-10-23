@@ -1,17 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <title>Challenges and Limitations</title>
-    </head>
-    <body>
-        <h1>Challenges and Limitations</h1>
-        <h2>Computational complexity</h2>
-        <p>Insert explanation of computational complexity</p>
-        <h2>Premature convergence</h2>
-        <p>Insert explanation of premature convergence</p>
-        <h2>Parameter tuning</h2>
-        <p>Insert explanation of parameter tuning</p>
-        <h2>Handling constraints</h2>
-        <p>Insert explanation of handling constraints</p>
-    </body>
+  <head>
+    <title>Challenges and Limitations</title>
+    <a style="float: right; padding: 10px" href="/index.html">Home</a>
+  </head>
+  <body>
+    <h1>Challenges and Limitations</h1>
+    <h2>Computational complexity</h2>
+    <p>
+      GAs can be computationally expensive, especially for large-scale problems.
+      This is because they require a large number of fitness evaluations, which
+      can be computationally intensive. This makes GAs less suitable for
+      problems where computational resources are limited.
+    </p>
+    <h2>Premature convergence</h2>
+    <p>
+      Another significant limitation is premature convergence. This is when the
+      algorithm converges on a sub-optimal solution too early, before it has had
+      a chance to explore other potentially better solutions. This can happen if
+      the population of solutions becomes too similar to each other, which
+      reduces the diversity of the population and limits the search space. This
+      is a particular problem in GAs because they use a fitness-based selection
+      process, which can lead to the over-representation of certain solutions in
+      the population
+    </p>
+    <h2>Parameter tuning</h2>
+    <p>
+      GAs also require careful parameter tuning. The performance of a GA can be
+      greatly affected by the choice of parameters, such as the population size,
+      mutation rate, and crossover rate. However, there is no one-size-fits-all
+      set of parameters that works best for all problems. Therefore, finding the
+      right parameters can be a time-consuming process that requires a lot of
+      trial and error.
+    </p>
+  </body>
 </html>

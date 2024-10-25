@@ -1,37 +1,58 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <title>Challenges and Limitations</title>
-    <a style="float: right; padding: 10px" href="/index.html">Home</a>
-  </head>
-  <body>
+    <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+</head>
+
+<body>
+    <header>
+        <h1>Genetic Algorithms</h1>
+        <h4>Eli Frigo + Clive Moras</h4>
+        <nav>
+            <a href="/">Home</a>
+            /
+            <a href="/sections/fundamentals.html">Fundamentals of Genetic Algorithms</a>
+            /
+            <a href="/sections/theoretical.html">Theoretical Foundations</a>
+            /
+            <a href="/sections/applications.html">Applications of Genetic Algorithms</a>
+            /
+            <a href="/sections/challenges.html">Challenges and Limitations</a>
+            /
+            <a href="/sections/conclusion.html">Conclusion</a>
+        </nav>
+    </header>
     <h1>Challenges and Limitations</h1>
     <h2>Computational complexity</h2>
     <p>
-      GAs can be computationally expensive, especially for large-scale problems.
-      This is because they require a large number of fitness evaluations, which
-      can be computationally intensive. This makes GAs less suitable for
-      problems where computational resources are limited.
+        GAs can be computationally expensive, especially for large-scale problems.
+        This is because they require a large number of fitness evaluations, which
+        can be computationally intensive. This makes GAs less suitable for
+        problems where computational resources are limited.
     </p>
     <h2>Premature convergence</h2>
     <p>
-      Another significant limitation is premature convergence. This is when the
-      algorithm converges on a sub-optimal solution too early, before it has had
-      a chance to explore other potentially better solutions. This can happen if
-      the population of solutions becomes too similar to each other, which
-      reduces the diversity of the population and limits the search space. This
-      is a particular problem in GAs because they use a fitness-based selection
-      process, which can lead to the over-representation of certain solutions in
-      the population
+        Another significant limitation is premature convergence. This is when the
+        algorithm converges on a sub-optimal solution too early, before it has had
+        a chance to explore other potentially better solutions. This can happen if
+        the population of solutions becomes too similar to each other, which
+        reduces the diversity of the population and limits the search space. This
+        is a particular problem in GAs because they use a fitness-based selection
+        process, which can lead to the over-representation of certain solutions in
+        the population
     </p>
     <h2>Parameter tuning</h2>
     <p>
-      GAs also require careful parameter tuning. The performance of a GA can be
-      greatly affected by the choice of parameters, such as the population size,
-      mutation rate, and crossover rate. However, there is no one-size-fits-all
-      set of parameters that works best for all problems. Therefore, finding the
-      right parameters can be a time-consuming process that requires a lot of
-      trial and error.
+        GAs also require careful parameter tuning. The performance of a GA can be
+        greatly affected by the choice of parameters, such as the population size,
+        mutation rate, and crossover rate. However, there is no one-size-fits-all
+        set of parameters that works best for all problems. Therefore, finding the
+        right parameters can be a time-consuming process that requires a lot of
+        trial and error.
     </p>
-  </body>
+</body>
+
 </html>

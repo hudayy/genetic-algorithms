@@ -16,11 +16,30 @@ function setup() {
 let generation = 0;
 let currentStep = 0;
 
+let simSpeed = 1;
+
+function keyPressed() {
+    if (key == " ") {
+        if (isLooping()) {
+            noLoop()
+        } else {
+            loop()
+            simSpeed = 1
+        }
+    }
+}
+
+function mouseWheel(event) {
+    simSpeed = Math.max(simSpeed -= event.deltaY, 1)
+}
+
 function draw() {
     scale(width / 100, -width / 100);
     translate(50, -100);
 
-    background(0);
+    background(0, 0, 0, 10);
+
+    frameRate(120);
 
     // draw the goal
     push();
@@ -37,26 +56,29 @@ function draw() {
     fill(255, 255, 255, 40);
     rect(-30, 40, 60, 40);
     pop();
+    for (let i = 0; i < simSpeed; i++) {
+        if (currentStep >= 1000 || jets.every(x => x.done)) {
+            generation = 0;
+            currentStep = 0;
+            jets.sort((a, b) => b.fitness() - a.fitness());
 
-    if (currentStep >= 400 || jets.every(x => x.done)) {
-        generation = 0;
-        currentStep = 0;
-        jets.sort((a, b) => b.fitness() - a.fitness());
+            jets = jets.splice(0, POPULATION / 2);
+            for (let i = jets.length; i < POPULATION; i++) {
+                jets[i] = jets[i - POPULATION / 2].reproduce();
+            }
 
-        jets = jets.splice(0, POPULATION / 2);
-        for (let i = jets.length; i < POPULATION; i++) {
-            jets[i] = jets[i - POPULATION / 2].reproduce();
+            jets.forEach(jet => jet.reset());
         }
 
-        jets.forEach(jet => jet.reset());
-    }
+        for (let jet of jets) {
+            jet.update(currentStep);
+            if (i == 0) {
+                jet.draw();
+            }
+        }
 
-    for (let jet of jets) {
-        jet.update(currentStep);
-        jet.draw();
+        currentStep++;
     }
-
-    currentStep++;
 }
 
 class Jet {
@@ -65,7 +87,7 @@ class Jet {
         if (genes !== null) this.genes = genes;
         else {
             // initialize the genes with random numbers from 0 to 3 inclusive
-            this.genes = Array.from({length: 400}, () => Math.floor(Math.random() * 4));
+            this.genes = Array.from({ length: 1000 }, () => Math.random() * 2 * Math.PI);
         }
 
         this.reset();
@@ -77,6 +99,7 @@ class Jet {
         this.vx = 0;
         this.vy = 0;
         this.done = false;
+        this.lifeTime = 1000;
         this.finishTime = 0;
     }
 
@@ -94,7 +117,7 @@ class Jet {
             this.y >= 40 &&
             this.y < 80
         ) return true;
-        
+
         return false;
     }
 
@@ -104,6 +127,7 @@ class Jet {
 
         if (this.dead()) {
             this.done = true;
+            this.lifeTime = step;
             return;
         }
 
@@ -114,23 +138,11 @@ class Jet {
         }
 
 
-        switch(this.genes[step]) {
-            case 0: // right
-                this.vx++;
-                break;
-            case 1: // up
-                this.vy++;
-                break;
-            case 2: // left
-                this.vx--;
-                break;
-            case 3: // down
-                this.vy--;
-                break;
-        }
+        this.vx += Math.cos(this.genes[step])
+        this.vy += Math.sin(this.genes[step])
 
-        this.x += this.vx / 64;
-        this.y += this.vy / 64;
+        this.x += this.vx / 16;
+        this.y += this.vy / 16;
     }
 
     draw() {
@@ -155,8 +167,9 @@ class Jet {
     reproduce() {
         let childGenes = [...this.genes];
         for (let i = 0; i < childGenes.length; i++) {
-            // mutate one in fifty genes
-            if (Math.random() * 50 < 1) childGenes[i] = Math.floor(Math.random() * 4);
+            // let mutationChance = 100 * (1 - i / this.lifeTime);
+            let mutationChance = 100;
+            if (Math.random() * mutationChance < 1) childGenes[i] = (childGenes[i] + Math.random() * 2 * Math.PI / 10) % (2 * Math.PI);
         }
         return new Jet(childGenes);
     }

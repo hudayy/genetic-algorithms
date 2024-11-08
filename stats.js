@@ -3,4 +3,3 @@ function setup() {
 
     createCanvas(canvas.clientWidth, canvas.clientHeight, canvas);
 }
-

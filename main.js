@@ -1,17 +1,17 @@
-let POPULATION = 1000;
-let GENERATION_LENGTH  = 400;
-let mutationChance = 100;
+let population = 1000;
+let generationLength = 10000;
+let mutationChance = 50;
 let simSpeed = 1;
 
 let jets = [];
 let generation = 0;
 let currentStep = 0;
-let peakFitness = 0;  // Track the highest fitness ever achieved
+let peakFitness = -generationLength;  // Track the highest fitness ever achieved
 
 function setup() {
     const canvas = document.getElementById("app");
 
-    for (let i = 0; i < POPULATION; i++) {
+    for (let i = 0; i < population; i++) {
         jets.push(new Jet());
     }
 
@@ -21,86 +21,12 @@ function setup() {
     createMenu();
 }
 
-function createMenu() {
-    let menu = createDiv();
-    menu.position(0, 0);
-    menu.style('width', '300px');
-    menu.style('height', '100vh');
-    menu.style('background-color', 'rgba(0, 0, 0, 0.7)');
-    menu.style('color', 'white');
-    menu.style('padding', '10px');
-    menu.style('display', 'flex');
-    menu.style('flex-direction', 'column');
-    menu.style('align-items', 'flex-start'); // Align elements to the left
-
-    // Mutation chance input
-    createSpan('Mutation Chance:').parent(menu);
-    let mutationInput = createInput(mutationChance.toString());
-    mutationInput.attribute('type', 'number');
-    mutationInput.parent(menu);
-    mutationInput.style('display', 'block');
-    mutationInput.style('margin-bottom', '10px');
-    mutationInput.input(() => mutationChance = parseInt(mutationInput.value()));
-
-    // Sim speed input
-    createSpan('Simulation Speed:').parent(menu);
-    let simSpeedInput = createInput(simSpeed.toString());
-    simSpeedInput.attribute('type', 'number');
-    simSpeedInput.parent(menu);
-    simSpeedInput.style('display', 'block');
-    simSpeedInput.style('margin-bottom', '10px');
-    simSpeedInput.input(() => simSpeed = Math.max(1, parseInt(simSpeedInput.value())));
-
-    // Maximum mutation angle input (in degrees)
-    createSpan('Max Mutation Angle (Degrees):').parent(menu);
-    let maxAngleInput = createInput('36'); // Default value: 36 degrees
-    maxAngleInput.attribute('type', 'number');
-    maxAngleInput.parent(menu);
-    maxAngleInput.style('display', 'block');
-    maxAngleInput.style('margin-bottom', '10px');
-    maxAngleInput.input(() => {
-        let degrees = parseInt(maxAngleInput.value());
-        // Convert degrees to a fraction of 2π
-        mutationMaxAngle = degrees * Math.PI / 180; // Convert degrees to radians
-    });
-
-    // Generation display
-    createSpan('Generation: ').parent(menu);
-    let genDisplay = createSpan('0');
-    genDisplay.parent(menu);
-    genDisplay.style('display', 'block');
-    genDisplay.style('margin-bottom', '10px');
-    function updateGenDisplay() {
-        genDisplay.html(generation);
-    }
-
-    // Peak fitness display
-    createSpan('Peak Fitness: ').parent(menu);
-    let peakFitnessDisplay = createSpan('0');
-    peakFitnessDisplay.parent(menu);
-    peakFitnessDisplay.style('display', 'block');
-    peakFitnessDisplay.style('margin-bottom', '10px');
-    function updatePeakFitness() {
-        peakFitnessDisplay.html(peakFitness);
-    }
-
-    // Updating generation and peak fitness
-    function updateStats() {
-        updateGenDisplay();
-        updatePeakFitness();
-    }
-
-    setInterval(updateStats, 100); // Update stats every 100ms
-}
-
-
 function keyPressed() {
     if (key == " ") {
         if (isLooping()) {
             noLoop()
         } else {
             loop()
-            simSpeed = 1
         }
     }
 }
@@ -143,6 +69,52 @@ function triCoords(x, y, radians) {
     return [x1Rot, y1Rot, x2Rot, y2Rot, x3Rot, y3Rot];
 }
 
+class Rect {
+    constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.xBound = x + w;
+        this.yBound = y + h;
+    }
+
+    draw() {
+        push();
+        stroke(255);
+        strokeWeight(0.25);
+        fill(255, 255, 255, 40)
+        rect(this.x, this.y, this.w, this.h);
+        pop();
+    }
+}
+
+const rects = [
+    new Rect(-50, 60, 80, 5),
+    new Rect(-30, 40, 80, 5),
+    new Rect(-50, 20, 80, 5),
+]
+
+function checkForRect(x, y) {
+    for (let i = 0; i < rects.length; i++) {
+        if (x >= rects[i].x && x < rects[i].xBound && y >= rects[i].y && y < rects[i].yBound) {
+            return [true, i];
+        }
+    }
+    return [false, null];
+}
+
+function mouseMoved() {
+    rectInfo = checkForRect(mouseX, mouseY)
+    if (rectInfo[0]) {
+        rects[rectInfo[1]].hover = true;
+    } else {
+        for (let i = 0; i < rects.length; i++) {
+            rects[i].hover = false;
+        }
+    }
+}
+
 function draw() {
     scale(width / 100, -width / 100);
     translate(50, -100);
@@ -159,23 +131,27 @@ function draw() {
     ellipse(0, 90, 10);
     pop();
 
-    // draw the rectangle
-    push();
-    stroke(255);
-    strokeWeight(0.25);
-    fill(255, 255, 255, 40);
-    rect(-30, 40, 60, 40);
-    pop();
+    // draw the rectangles
+    for (let i = 0; i < rects.length; i++) {
+        rects[i].draw();
+    }
+
 
     for (let i = 0; i < simSpeed; i++) {
+        if (generation == 1000 && peakFitness < 0) {
+            generation = 0
+            for (let j = 0; j < jets.length; j++) {
+                jets[j] = new Jet();
+            }
+        }
         if (currentStep >= 500 || jets.every(x => x.done)) {
             generation++;
             currentStep = 0;
             jets.sort((a, b) => b.fitness() - a.fitness());
 
-            jets = jets.splice(0, POPULATION / 2);
-            for (let i = jets.length; i < POPULATION; i++) {
-                jets[i] = jets[i - POPULATION / 2].reproduce();
+            jets = jets.splice(0, population / 2);
+            for (let i = jets.length; i < population; i++) {
+                jets[i] = jets[i - population / 2].reproduce();
             }
 
             jets.forEach(jet => jet.reset());
@@ -195,13 +171,13 @@ function draw() {
     }
 }
 
-let mutationMaxAngle = 36 * Math.PI / 180;
+let mutationMaxAngle = 180 * Math.PI / 180;
 
 class Jet {
     constructor(genes = null) {
         if (genes !== null) this.genes = genes;
         else {
-            this.genes = Array.from({ length: 500 }, () => Math.random() * 2 * Math.PI);
+            this.genes = Array.from({ length: generationLength }, () => Math.random() * 2 * Math.PI);
         }
 
         this.reset();
@@ -212,6 +188,7 @@ class Jet {
         this.y = 10;
         this.vx = 0;
         this.vy = 0;
+        this.totalDist = 0;
         this.done = false;
         this.lifeTime = 500;
         this.finishTime = 0;
@@ -223,23 +200,28 @@ class Jet {
         if (this.y >= 100) return true;
         if (this.y < 0) return true;
 
-        if (this.x >= -30 && this.x < 30 && this.y >= 40 && this.y < 80) return true;
+        if (checkForRect(this.x, this.y)[0]) return true;
 
         return false;
     }
 
     update(step) {
-        if (this.done) return;
-
         if (this.dead()) {
             this.done = true;
             this.lifeTime = step;
+            this.died = true;
             return;
         }
 
         if (dist(this.x, this.y, 0, 90) < 5) {
             this.done = true;
             this.finishTime = step;
+            this.died = true;
+            return;
+        }
+
+        if (this.done) {
+            this.died = false;
             return;
         }
 
@@ -248,6 +230,7 @@ class Jet {
 
         this.x += this.vx / 16;
         this.y += this.vy / 16;
+        this.totalDist += Math.sqrt(this.vx * this.vx + this.vy * this.vy) / 16;
     }
 
     draw() {
@@ -266,8 +249,13 @@ class Jet {
     }
 
     fitness() {
-        if (this.finishTime) return 500 - this.finishTime;
-        return -dist(this.x, this.y, 0, 90);
+        let fitness = -generationLength;
+        if (this.finishTime) {
+            fitness = 500 - this.finishTime;
+        } else {
+            fitness = -dist(this.x, this.y, 0, 90) * 3 + this.totalDist + this.lifeTime - generationLength;
+        }
+        return fitness;
     }
 
     reproduce() {

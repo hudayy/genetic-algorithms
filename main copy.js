@@ -264,12 +264,15 @@ class Jet {
     }
 
     reproduce() {
-        let childModel = [...this.model];
-        for (let i = 0; i < childModel.length; i++) {
-            if (Math.random() * mutationChance < 1) {
-                childModel[i] = (childModel[i] + (Math.random() * 2 * mutationMaxAngle - mutationMaxAngle)) % (2 * Math.PI);
+        let childModel = this.model.map(layer => {
+            if (Array.isArray(layer[0])) {
+                return layer.map(subLayer => 
+                    subLayer.map(value => (Math.random() * 100 < chancePercent ? value + 0.1 : value))
+                );
+            } else {
+                return layer.map(value => (Math.random() * 100 < chancePercent ? value + 0.1 : value));
             }
-        }
+        });
         return new Jet(childModel);
     }
 }

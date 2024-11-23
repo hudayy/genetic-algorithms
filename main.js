@@ -1,12 +1,16 @@
-let population = 1000;
+const nodeLengths = [5, 5, 5, 1];
+const learningRate = 1000;
+
+let population = 100;
 let generationLength = 10000;
 let mutationChance = 50;
 let simSpeed = 1;
 
 let jets = [];
+const jetSpeed = 0.05;
 let generation = 0;
 let currentStep = 0;
-let peakFitness = -generationLength;  // Track the highest fitness ever achieved
+let peakFitness = -Infinity;
 
 function setup() {
     const canvas = document.getElementById("app");
@@ -17,7 +21,6 @@ function setup() {
 
     createCanvas(canvas.clientWidth, canvas.clientHeight, canvas);
 
-    // Create menu UI on the left side
     createMenu();
 }
 
@@ -104,46 +107,29 @@ function checkForRect(x, y) {
     return [false, null];
 }
 
-function mouseMoved() {
-    rectInfo = checkForRect(mouseX, mouseY)
-    if (rectInfo[0]) {
-        rects[rectInfo[1]].hover = true;
-    } else {
-        for (let i = 0; i < rects.length; i++) {
-            rects[i].hover = false;
-        }
-    }
-}
-
 function draw() {
-    scale(width / 100, -width / 100);
-    translate(50, -100);
-
-    background(0, 0, 0);
-
-    frameRate(120);
-
-    // draw the goal
-    push();
-    stroke(255);
-    strokeWeight(0.25);
-    fill(0, 128, 128, 200);
-    ellipse(0, 90, 10);
-    pop();
-
-    // draw the rectangles
-    for (let i = 0; i < rects.length; i++) {
-        rects[i].draw();
-    }
-
-
     for (let i = 0; i < simSpeed; i++) {
-        if (generation == 1000 && peakFitness < 0) {
-            generation = 0
-            for (let j = 0; j < jets.length; j++) {
-                jets[j] = new Jet();
+
+        if (!i) {
+            scale(width / 100, -width / 100);
+            translate(50, -100);
+
+            background(0, 0, 0);
+
+            frameRate(120);
+
+            push();
+            stroke(255);
+            strokeWeight(0.25);
+            fill(0, 128, 128, 200);
+            ellipse(0, 90, 10);
+            pop();
+
+            for (let rect of rects) {
+                rect.draw();
             }
         }
+
         if (currentStep >= 500 || jets.every(x => x.done)) {
             generation++;
             currentStep = 0;
@@ -157,14 +143,13 @@ function draw() {
             jets.forEach(jet => jet.reset());
         }
 
-        for (let jet of jets) {
-            jet.update(currentStep);
+        for (let j = 0; j < jets.length; j++) {
+            jets[j].update(currentStep);
             if (i == 0) {
-                jet.draw();
+                jets[j].draw(j ? [256] : [256, 0, 0]);
             }
         }
 
-        // Track peak fitness: if a jet's fitness exceeds the previous peak, update it
         peakFitness = Math.max(peakFitness, ...jets.map(jet => jet.fitness()));
 
         currentStep++;
@@ -173,13 +158,10 @@ function draw() {
 
 let mutationMaxAngle = 180 * Math.PI / 180;
 
-class Jet {
+class Jet extends NeuralNet {
     constructor(genes = null) {
-        if (genes !== null) this.genes = genes;
-        else {
-            this.genes = Array.from({ length: generationLength }, () => Math.random() * 2 * Math.PI);
-        }
-
+        super(nodeLengths)
+        if (genes !== null) this.layers = genes;
         this.reset();
     }
 
@@ -190,17 +172,22 @@ class Jet {
         this.vy = 0;
         this.totalDist = 0;
         this.done = false;
-        this.lifeTime = 500;
+        this.lifeTime = generationLength;
         this.finishTime = 0;
+        this.wallDistance = [];
     }
 
     dead() {
+        this.died = false;
         if (this.x < -50) return true;
         if (this.x >= 50) return true;
         if (this.y >= 100) return true;
         if (this.y < 0) return true;
 
-        if (checkForRect(this.x, this.y)[0]) return true;
+        if (checkForRect(this.x, this.y)[0]) {
+            this.died = true;
+            return true;
+        }
 
         return false;
     }
@@ -209,14 +196,12 @@ class Jet {
         if (this.dead()) {
             this.done = true;
             this.lifeTime = step;
-            this.died = true;
             return;
         }
 
         if (dist(this.x, this.y, 0, 90) < 5) {
             this.done = true;
             this.finishTime = step;
-            this.died = true;
             return;
         }
 
@@ -225,46 +210,63 @@ class Jet {
             return;
         }
 
-        this.vx += Math.cos(this.genes[step]);
-        this.vy += Math.sin(this.genes[step]);
+        this.inputs = [this.x, this.y, this.distToWall(), this.distToGoal(), step]
+        this.wallDistance.push(this.distToWall())
 
-        this.x += this.vx / 16;
-        this.y += this.vy / 16;
+        let output = this.forward(this.inputs)[0] % (2 * PI);
+
+        this.vx += Math.cos(output);
+        this.vy += Math.sin(output);
+
+        this.x += this.vx * jetSpeed;
+        this.y += this.vy * jetSpeed;
         this.totalDist += Math.sqrt(this.vx * this.vx + this.vy * this.vy) / 16;
     }
 
-    draw() {
+    draw(color) {
         push();
         strokeWeight(0.1);
-        stroke(255);
+        stroke(...color);
         fill(128, 128, 128, 10);
 
-        // Calculate the angle based on the velocity of the jet
         const angle = Math.atan2(this.vy, this.vx);
 
-        // Pass the angle for rotation
         triangle(...triCoords(this.x, this.y, angle));
 
         pop();
     }
 
     fitness() {
-        let fitness = -generationLength;
+        let fitness = 0;
         if (this.finishTime) {
-            fitness = 500 - this.finishTime;
+            fitness = generationLength - this.finishTime;
         } else {
-            fitness = -dist(this.x, this.y, 0, 90) * 3 + this.totalDist + this.lifeTime - generationLength;
+            fitness += -dist(this.x, this.y, 0, 90);
         }
         return fitness;
     }
 
     reproduce() {
-        let childGenes = [...this.genes];
-        for (let i = 0; i < childGenes.length; i++) {
-            if (Math.random() * mutationChance < 1) {
-                childGenes[i] = (childGenes[i] + (Math.random() * 2 * mutationMaxAngle - mutationMaxAngle)) % (2 * Math.PI);
-            }
+        return new Jet(this.clone(mutationChance).layers);
+    }
+
+    distToWall() {
+        let minDist = Infinity;
+
+        for (let rect of rects) {
+            const closestX = Math.max(rect.x, Math.min(this.x, rect.xBound));
+            const closestY = Math.max(rect.y, Math.min(this.y, rect.yBound));
+            const dist = Math.sqrt((closestX - this.x) ** 2 + (closestY - this.y) ** 2);
+            minDist = Math.min(minDist, dist);
         }
-        return new Jet(childGenes);
+
+        return minDist;
+    }
+
+
+    distToGoal() {
+        const goalX = 0;
+        const goalY = 90;
+        return dist(this.x, this.y, goalX, goalY);
     }
 }

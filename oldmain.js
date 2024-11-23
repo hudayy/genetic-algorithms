@@ -6,7 +6,7 @@ let simSpeed = 1;
 let jets = [];
 let generation = 0;
 let currentStep = 0;
-let peakFitness = -generationLength;  // Track the highest fitness ever achieved
+let peakFitness = -generationLength;
 
 function setup() {
     const canvas = document.getElementById("app");
@@ -17,7 +17,6 @@ function setup() {
 
     createCanvas(canvas.clientWidth, canvas.clientHeight, canvas);
 
-    // Create menu UI on the left side
     createMenu();
 }
 
@@ -104,17 +103,6 @@ function checkForRect(x, y) {
     return [false, null];
 }
 
-function mouseMoved() {
-    rectInfo = checkForRect(mouseX, mouseY)
-    if (rectInfo[0]) {
-        rects[rectInfo[1]].hover = true;
-    } else {
-        for (let i = 0; i < rects.length; i++) {
-            rects[i].hover = false;
-        }
-    }
-}
-
 function draw() {
     scale(width / 100, -width / 100);
     translate(50, -100);
@@ -123,7 +111,6 @@ function draw() {
 
     frameRate(120);
 
-    // draw the goal
     push();
     stroke(255);
     strokeWeight(0.25);
@@ -131,7 +118,6 @@ function draw() {
     ellipse(0, 90, 10);
     pop();
 
-    // draw the rectangles
     for (let i = 0; i < rects.length; i++) {
         rects[i].draw();
     }
@@ -158,7 +144,6 @@ function draw() {
             }
         }
 
-        // Track peak fitness: if a jet's fitness exceeds the previous peak, update it
         peakFitness = Math.max(peakFitness, ...jets.map(jet => jet.fitness()));
 
         currentStep++;
@@ -168,23 +153,12 @@ function draw() {
 let mutationMaxAngle = 180 * Math.PI / 180;
 
 class Jet {
-    constructor(model = null, hiddenLayerSize = 5) {
-        if (model == null) {
-            model = []
-
-            let inputWeights = Array(4).fill().map(() => Array(hiddenLayerSize).fill(0));
-            model.push(inputWeights);
-
-            let hiddenBiases = Array(hiddenLayerSize).fill(0);
-            model.push(hiddenBiases);
-
-            let outputWeights = Array(hiddenLayerSize).fill().map(() => Array(2).fill(0));
-            model.push(outputWeights);
-
-            let outputBiases = Array(2).fill(0);
-            model.push(outputBiases);
+    constructor(genes = null) {
+        if (genes !== null) this.genes = genes;
+        else {
+            this.genes = Array.from({ length: generationLength }, () => Math.random() * 2 * Math.PI);
         }
-        this.model = model;
+
         this.reset();
     }
 
@@ -230,8 +204,8 @@ class Jet {
             return;
         }
 
-        this.vx += Math.cos(this.model[step]);
-        this.vy += Math.sin(this.model[step]);
+        this.vx += Math.cos(this.genes[step]);
+        this.vy += Math.sin(this.genes[step]);
 
         this.x += this.vx / 16;
         this.y += this.vy / 16;
@@ -244,10 +218,8 @@ class Jet {
         stroke(255);
         fill(128, 128, 128, 10);
 
-        // Calculate the angle based on the velocity of the jet
         const angle = Math.atan2(this.vy, this.vx);
 
-        // Pass the angle for rotation
         triangle(...triCoords(this.x, this.y, angle));
 
         pop();
@@ -264,15 +236,12 @@ class Jet {
     }
 
     reproduce() {
-        let childModel = this.model.map(layer => {
-            if (Array.isArray(layer[0])) {
-                return layer.map(subLayer => 
-                    subLayer.map(value => (Math.random() * 100 < chancePercent ? value + 0.1 : value))
-                );
-            } else {
-                return layer.map(value => (Math.random() * 100 < chancePercent ? value + 0.1 : value));
+        let childGenes = [...this.genes];
+        for (let i = 0; i < childGenes.length; i++) {
+            if (Math.random() * mutationChance < 1) {
+                childGenes[i] = (childGenes[i] + (Math.random() * 2 * mutationMaxAngle - mutationMaxAngle)) % (2 * Math.PI);
             }
-        });
-        return new Jet(childModel);
+        }
+        return new Jet(childGenes);
     }
 }

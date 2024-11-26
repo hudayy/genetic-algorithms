@@ -1,23 +1,24 @@
-const nodeLengths = [5, 5, 5, 1];
-const learningRate = 1000;
+const nodeLengths = [2, 5, 8];
+const learningRate = 10000;
+const mutationFactor = 1;
+const generationLength = 10000;
+const survivalRate = 0.1;
 
-let population = 100;
-let generationLength = 10000;
-let mutationChance = 50;
 let simSpeed = 1;
-
-let jets = [];
 const jetSpeed = 0.05;
+
+const goalX = 0;
+const goalY = 90;
+
 let generation = 0;
 let currentStep = 0;
 let peakFitness = -Infinity;
+let jet = null;
 
 function setup() {
     const canvas = document.getElementById("app");
 
-    for (let i = 0; i < population; i++) {
-        jets.push(new Jet());
-    }
+    jet = new Jet();
 
     createCanvas(canvas.clientWidth, canvas.clientHeight, canvas);
 
@@ -92,12 +93,6 @@ class Rect {
     }
 }
 
-const rects = [
-    new Rect(-50, 60, 80, 5),
-    new Rect(-30, 40, 80, 5),
-    new Rect(-50, 20, 80, 5),
-]
-
 function checkForRect(x, y) {
     for (let i = 0; i < rects.length; i++) {
         if (x >= rects[i].x && x < rects[i].xBound && y >= rects[i].y && y < rects[i].yBound) {
@@ -107,22 +102,25 @@ function checkForRect(x, y) {
     return [false, null];
 }
 
-function draw() {
-    for (let i = 0; i < simSpeed; i++) {
+const rects = [
+    new Rect(-50, 60, 80, 5),
+    new Rect(-30, 40, 80, 5),
+    new Rect(-50, 20, 80, 5),
+]
 
-        if (!i) {
+function draw() {
+    for (let sim = 0; sim < simSpeed; sim++) {
+
+        if (!sim) {
             scale(width / 100, -width / 100);
             translate(50, -100);
-
             background(0, 0, 0);
-
             frameRate(120);
-
             push();
             stroke(255);
             strokeWeight(0.25);
             fill(0, 128, 128, 200);
-            ellipse(0, 90, 10);
+            ellipse(goalX, goalY, 10);
             pop();
 
             for (let rect of rects) {
@@ -130,28 +128,23 @@ function draw() {
             }
         }
 
-        if (currentStep >= 500 || jets.every(x => x.done)) {
+        if (currentStep >= generationLength || jet.done) {
             generation++;
             currentStep = 0;
-            jets.sort((a, b) => b.fitness() - a.fitness());
-
-            jets = jets.splice(0, population / 2);
-            for (let i = jets.length; i < population; i++) {
-                jets[i] = jets[i - population / 2].reproduce();
-            }
-
-            jets.forEach(jet => jet.reset());
+            jet.reset();
         }
 
-        for (let j = 0; j < jets.length; j++) {
-            jets[j].update(currentStep);
-            if (i == 0) {
-                jets[j].draw(j ? [256] : [256, 0, 0]);
-            }
+        if (!sim) {
+            jet.draw([256]);
         }
 
-        peakFitness = Math.max(peakFitness, ...jets.map(jet => jet.fitness()));
+        if (jet.fitness() > peakFitness) {
+            console.log('peaked')
+            peakFitness = jet.fitness();
+            jet.bestOutput = jet.previousOutput
+        }
 
+        jet.update(currentStep);
         currentStep++;
     }
 }
@@ -159,9 +152,11 @@ function draw() {
 let mutationMaxAngle = 180 * Math.PI / 180;
 
 class Jet extends NeuralNet {
-    constructor(genes = null) {
-        super(nodeLengths)
-        if (genes !== null) this.layers = genes;
+    constructor() {
+        super(nodeLengths, learningRate, false, true)
+        this.previousOutput = Array.from({ length: generationLength }, () => Array(8).fill(0));
+        this.bestOutput = this.previousOutput;
+        this.mutate(mutationFactor);
         this.reset();
     }
 
@@ -193,30 +188,30 @@ class Jet extends NeuralNet {
     }
 
     update(step) {
+        if (this.done) return;
+
         if (this.dead()) {
             this.done = true;
             this.lifeTime = step;
             return;
         }
 
-        if (dist(this.x, this.y, 0, 90) < 5) {
+        if (this.distToGoal() < 5) {
             this.done = true;
             this.finishTime = step;
             return;
         }
 
-        if (this.done) {
-            this.died = false;
-            return;
-        }
-
-        this.inputs = [this.x, this.y, this.distToWall(), this.distToGoal(), step]
+        this.inputs = [this.x, this.y]
         this.wallDistance.push(this.distToWall())
 
-        let output = this.forward(this.inputs)[0] % (2 * PI);
+        this.output = this.sgd(this.inputs, this.bestOutput[step], learningRate, false);
+        this.previousOutput[step] = this.output[0];
 
-        this.vx += Math.cos(output);
-        this.vy += Math.sin(output);
+        const angle = (this.output[1] * Math.PI) / 4;
+
+        this.vx += Math.cos(angle);
+        this.vy += Math.sin(angle);
 
         this.x += this.vx * jetSpeed;
         this.y += this.vy * jetSpeed;
@@ -241,13 +236,9 @@ class Jet extends NeuralNet {
         if (this.finishTime) {
             fitness = generationLength - this.finishTime;
         } else {
-            fitness += -dist(this.x, this.y, 0, 90);
+            fitness += -this.distToGoal();
         }
         return fitness;
-    }
-
-    reproduce() {
-        return new Jet(this.clone(mutationChance).layers);
     }
 
     distToWall() {
@@ -263,10 +254,7 @@ class Jet extends NeuralNet {
         return minDist;
     }
 
-
     distToGoal() {
-        const goalX = 0;
-        const goalY = 90;
         return dist(this.x, this.y, goalX, goalY);
     }
 }

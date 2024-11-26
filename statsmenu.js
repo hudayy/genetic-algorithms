@@ -10,15 +10,6 @@ function createMenu() {
     menu.style('flex-direction', 'column');
     menu.style('align-items', 'flex-start'); // Align elements to the left
 
-    // Mutation chance input
-    createSpan('Mutation Chance:').parent(menu);
-    let mutationInput = createInput(mutationChance.toString());
-    mutationInput.attribute('type', 'number');
-    mutationInput.parent(menu);
-    mutationInput.style('display', 'block');
-    mutationInput.style('margin-bottom', '10px');
-    mutationInput.input(() => mutationChance = parseInt(mutationInput.value()));
-
     // Sim speed input
     createSpan('Simulation Speed:').parent(menu);
     let simSpeedInput = createInput(simSpeed.toString());
@@ -27,19 +18,6 @@ function createMenu() {
     simSpeedInput.style('display', 'block');
     simSpeedInput.style('margin-bottom', '10px');
     simSpeedInput.input(() => simSpeed = Math.max(1, parseInt(simSpeedInput.value())));
-
-    // Maximum mutation angle input (in degrees)
-    createSpan('Max Mutation Angle (Degrees):').parent(menu);
-    let maxAngleInput = createInput('180'); // Default value: 36 degrees
-    maxAngleInput.attribute('type', 'number');
-    maxAngleInput.parent(menu);
-    maxAngleInput.style('display', 'block');
-    maxAngleInput.style('margin-bottom', '10px');
-    maxAngleInput.input(() => {
-        let degrees = parseInt(maxAngleInput.value());
-        // Convert degrees to a fraction of 2π
-        mutationMaxAngle = degrees * Math.PI / 180; // Convert degrees to radians
-    });
 
     // Generation display
     createSpan('Generation: ').parent(menu);

@@ -1,12 +1,20 @@
 class Layer {
     constructor(inputs, outputs, runSigmoid) {
-        this.weights = Array.from({ length: outputs }, () => Array(inputs).fill(0));
-        this.biases = Array.from({ length: outputs }, () => 0);
-        this.weightGrads = Array.from({ length: outputs }, () => Array(inputs).fill(0));
-        this.biasGrads = Array.from({ length: outputs }, () => 0);
+        const stddev = Math.sqrt(2.0 / (inputs + outputs));
+        
+        this.weights = Array.from({ length: outputs }, () => 
+            Array.from({ length: inputs }, () => generateGaussian() * stddev)
+        );
+        
+        this.biases = Array.from({ length: outputs }, () => generateGaussian() * stddev);
+        
         this.numInputs = inputs;
         this.numOutputs = outputs;
+        
         this.runSigmoid = runSigmoid;
+        
+        this.weightGrads = Array.from({ length: outputs }, () => Array(inputs).fill(0));
+        this.biasGrads = Array.from({ length: outputs }, () => 0);
     }
 
     forEachWeight(func) {
@@ -31,48 +39,49 @@ class Layer {
                 output += inputs[j] * this.weights[i][j];
                 output += this.biases[i];
             }
-            if (this.sigmoid) output = sigmoid(output);
+            if (this.runSigmoid) output = sigmoid(output);
             outputs.push(output);
         }
         return outputs;
     }
 
-    sgd(inputs, outputs, _learningRate, deterministic, agent) {
-        let epsilon = 0.0000001;
+    sgd(inputs, outputs, _learningRate, agent) {
+        const epsilon = 1e-4;
+    
         this.forEachWeight((i, j) => {
-            let paramCache = this.weights[i][j];
-            let lossA = agent.loss(inputs, outputs, deterministic);
-            this.weights[i][j] += epsilon;
-            let lossB = agent.loss(inputs, outputs, deterministic);
-            this.weightGrads[i][j] = (lossB - lossA) / epsilon;
-            this.weights[i][j] = paramCache;
-        });
+            const originalWeight = this.weights[i][j];
 
-        this.forEachBias((i) => {
-            let paramCache = this.biases[i];
             let lossA = agent.loss(inputs, outputs);
-            this.biases[i] += epsilon;
+
+            this.weights[i][j] += epsilon;
+            
             let lossB = agent.loss(inputs, outputs);
+            
+            this.weightGrads[i][j] = (lossB - lossA) / epsilon;
+            
+            this.weights[i][j] = originalWeight;
+        });
+    
+        this.forEachBias((i) => {
+            const originalBias = this.biases[i];
+            
+            let lossA = agent.loss(inputs, outputs);
+            
+            this.biases[i] += epsilon;
+            
+            let lossB = agent.loss(inputs, outputs);
+            
             this.biasGrads[i] = (lossB - lossA) / epsilon;
-            this.biases[i] = paramCache;
+            
+            this.biases[i] = originalBias;
         });
-
+    
         this.forEachWeight((i, j) => {
-            this.weights[i][j] += _learningRate * this.weightGrads[i][j];
+            this.weights[i][j] -= _learningRate * this.weightGrads[i][j];
         });
-
+    
         this.forEachBias((i) => {
-            this.biases[i] += _learningRate * this.biasGrads[i];
-        });
-    }
-
-    mutate(_learningRate) {
-        this.forEachWeight((i, j) => {
-            this.weights[i][j] += generateGaussian() * _learningRate;
-        });
-
-        this.forEachBias((i) => {
-            this.biases[i] += generateGaussian() * _learningRate;
+            this.biases[i] -= _learningRate * this.biasGrads[i];
         });
     }
 }

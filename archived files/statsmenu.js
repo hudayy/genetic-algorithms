@@ -39,10 +39,22 @@ function createMenu() {
         peakFitnessDisplay.html(peakFitness);
     }
 
-    // Updating generation and peak fitness
+    // Deterministic status display
+    createSpan('Deterministic: ').parent(menu);
+    let deterministicDisplay = createSpan('false'); // Initial value
+    deterministicDisplay.parent(menu);
+    deterministicDisplay.style('display', 'block');
+    deterministicDisplay.style('margin-bottom', '10px');
+    function updateDeterministicDisplay() {
+        deterministicDisplay.html(deterministic.toString());
+        deterministicDisplay.style('color', deterministic ? 'green' : 'red');
+    }
+
+    // Updating generation, peak fitness, and deterministic status
     function updateStats() {
         updateGenDisplay();
         updatePeakFitness();
+        updateDeterministicDisplay();
     }
 
     setInterval(updateStats, 100); // Update stats every 100ms

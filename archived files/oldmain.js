@@ -168,7 +168,6 @@ class Jet {
         this.vx = 0;
         this.vy = 0;
         this.totalDist = 0;
-        this.done = false;
         this.lifeTime = 500;
         this.finishTime = 0;
     }
